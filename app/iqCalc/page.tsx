@@ -1,28 +1,64 @@
+//let ip: any
+//let pf: any
+"use server"
+import { headers } from 'next/headers'
 
-export default function iqCalc() {
-    async function ipconfig() {
-        const ipData = await fetch('https://geolocation-db.com/json/');
-        const locationIp = await ipData.json();
-        console.log(locationIp.IPv4);
-        return (locationIp.IPv4)
+async function ipconfig() {
+    const FALLBACK_IP_ADDRESS = '0.0.0.0'
+    const forwardedFor = headers().get('x-forwarded-for')
+
+    if (forwardedFor) {
+        //console.log(forwardedFor)
+        return forwardedFor.split(',')[0] ?? FALLBACK_IP_ADDRESS
     }
 
+    return headers().get('x-real-ip') ?? FALLBACK_IP_ADDRESS
+}
+//console.log(ipconfig())
 
+export default async function iqCalc() {
     async function normalDtn() {
         const ip = await ipconfig()
         const arr = ip.split('.')
 
-        const ipNumStr = parseInt(arr[0]) * 1000000000 + parseInt(arr[1]) * 1000000 + parseInt(arr[2]) * 1000 + parseInt(arr[3])
-        const ipNum = Number(ipNumStr);
+        const ipNumStr = parseInt(arr[0]) + parseInt(arr[1]) + parseInt(arr[2]) + parseInt(arr[3])
+        let ipNum = Number(ipNumStr);
 
-        console.log(ipNum)
-        let sigma = 30599000000000000000
+        //   console.log(ipNum)
+        let sigma = 203.69461619698555 * 203.69461619698555
 
-        var gaussian = require('gaussian');
-        var distribution = gaussian(127000000001, sigma);
-        var iq = distribution.pdf(ipNum)
+        let gaussian = require('gaussian');
+        let distribution = gaussian(549.9299763965381, sigma);
+        let iq = distribution.pdf(ipNum)
+        //  let pp = distribution.cdf(ipNum)
+        let pp = distribution.cdf(ipNum)
+
+
         console.log(iq)
-        return (iq)
+        console.log(pp)
+
+        function yourIQ() {
+            iq = 1 - pp
+            //if (iq > 1)
+            //     iq = 1
+            // else
+            //    iq = iq
+            return (iq)
+        }
+        const dis = gaussian(100, 512);
+        const pf = dis.ppf(yourIQ())
+        //   console.log(pf)
+        // let iq2 = yourIQ() * 100
+        //    console.log(yourIQ() * 100)
+
+        return pf
+
     }
-    normalDtn()
+
+    return (
+
+        `당신의 ip는 ${await ipconfig()}이며 이를 통해 추정한 당신의 IQ는 ${await normalDtn()}입니다.`
+
+    )
+
 }
